@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Schedule {
+  id       Int                      @id @default(autoincrement())
+  cron     String                   @unique
+  channels IrrigationZoneDuration[]
+}
+
+model IrrigationZoneDuration {
+  id Int @id @default(autoincrement())
+
+  // type is duration or inches. if type is in inches the duration will be derived
+  // from the precipitation rate and inches
+  type             String
+  durationOrInches Float
+
+  Schedule   Schedule? @relation(fields: [scheduleId], references: [id])
+  scheduleId Int?
+
+  irrigationZone                     IrrigationZone @relation(fields: [irrigationZoneIrrigationPinChannel], references: [irrigationPinChannel])
+  irrigationZoneIrrigationPinChannel Int
+}
+
+model IrrigationPin {
+  channel        Int              @id
+  gpioPin        Int              @unique
+  IrrigationZone IrrigationZone[]
+}
+
+model IrrigationZone {
+  precipitationRate Float  @default(2)
+  name              String @unique
+
+  channel              IrrigationPin @relation(fields: [irrigationPinChannel], references: [channel])
+  irrigationPinChannel Int           @id
+
+  IrrigationZoneDuration IrrigationZoneDuration[]
+}
