@@ -1,0 +1,15 @@
+{
+  "name": "pi-sprinkler",
+  "version": "1.0.0",
+  "description": "Sprinkler controller for the raspberry pi",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "workspaces":[
+    "api"
+  ],
+  "keywords": [],
+  "author": "Geoffrey Olson Jr.",
+  "license": "MIT"
+}
