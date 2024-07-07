@@ -1,7 +1,8 @@
 import express from 'express';
+import { config } from './loadConfig';
 
 const app = express();
-const port = 3000;
+const port = config.port;
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
