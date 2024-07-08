@@ -55,11 +55,11 @@ app.post(
   })
 );
 
-const IdSchema = z.object({ id: z.coerce.number() });
+const IdQuerySchema = z.object({ id: z.coerce.number() });
 app.get(
   "/schedule",
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = IdSchema.parse(req.query);
+    const { id } = IdQuerySchema.parse(req.query);
     const schedule = await prisma.schedule.findFirst({
       where: { id },
       include: { channels: true },
@@ -102,6 +102,19 @@ app.post(
       },
     });
     res.send(schedule);
+  })
+);
+
+const IdDeleteSchema = z.object({ id: z.number() });
+app.delete(
+  "/schedule",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = IdDeleteSchema.parse(req.body);
+    await prisma.schedule.delete({
+      include: { channels: true },
+      where: { id },
+    });
+    res.send();
   })
 );
 
