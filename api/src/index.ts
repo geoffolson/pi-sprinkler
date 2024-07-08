@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import { config } from "./loadConfig";
 import { PrismaClient } from "@prisma/client";
 import { IrrigationPin, IrrigationSchedule, IrrigationZone } from "common";
+import { channel } from "diagnostics_channel";
 
 const prisma = new PrismaClient();
 
@@ -61,9 +62,19 @@ app.post(
   "/schedule",
   asyncHandler(async (req: Request, res: Response) => {
     const data = IrrigationSchedule.parse(req.body);
-    // prisma.schedule.upsert({
-    //   where
-    // })
+    const schedule = await prisma.schedule.create({
+      data: { cron: data.cron },
+    });
+    await prisma.irrigationZoneDuration.createMany({
+      data: data.channels.map((zone) => {
+        return {
+          type: zone.type,
+          durationOrInches: zone.durationOrInches,
+          irrigationZoneIrrigationPinChannel: zone.channel,
+          scheduleId: schedule.id,
+        };
+      }),
+    });
   })
 );
 
