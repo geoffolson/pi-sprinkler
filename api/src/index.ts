@@ -3,6 +3,7 @@ import { config } from "./loadConfig";
 import { PrismaClient } from "@prisma/client";
 import { IrrigationPin, IrrigationSchedule, IrrigationZone } from "common";
 import { z } from "zod";
+import type { IrrigationZoneDuration } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -16,10 +17,6 @@ const asyncHandler =
   };
 
 app.use(express.json());
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
 
 app.post(
   "/irrigation-pin",
@@ -84,18 +81,27 @@ app.post(
   asyncHandler(async (req: Request, res: Response) => {
     const data = IrrigationSchedule.parse(req.body);
     const schedule = await prisma.schedule.create({
-      data: { cron: data.cron },
+      data: {
+        cron: data.cron,
+        channels: {
+          createMany: {
+            data: data.channels.map(
+              (zone): Omit<IrrigationZoneDuration, "id" | "scheduleId"> => {
+                return {
+                  type: zone.type,
+                  durationOrInches: zone.durationOrInches,
+                  irrigationZoneIrrigationPinChannel: zone.channel,
+                };
+              }
+            ),
+          },
+        },
+      },
+      include: {
+        channels: true,
+      },
     });
-    await prisma.irrigationZoneDuration.createMany({
-      data: data.channels.map((zone) => {
-        return {
-          type: zone.type,
-          durationOrInches: zone.durationOrInches,
-          irrigationZoneIrrigationPinChannel: zone.channel,
-          scheduleId: schedule.id,
-        };
-      }),
-    });
+    res.send(schedule);
   })
 );
 
