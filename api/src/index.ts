@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import { config } from "./loadConfig";
 import { PrismaClient } from "@prisma/client";
-import { IrrigationPin } from "common";
+import { IrrigationPin, IrrigationSchedule, IrrigationZone } from "common";
 
 const prisma = new PrismaClient();
 
@@ -35,9 +35,37 @@ app.post(
   })
 );
 
-app.post("/zone", async () => {});
+app.post(
+  "/irrigation-zone",
+  asyncHandler(async (req: Request, res: Response) => {
+    const data = IrrigationZone.parse(req.body);
+    await prisma.irrigationZone.upsert({
+      create: {
+        name: data.name,
+        irrigationPinChannel: data.channel,
+        precipitationRate: data.precipitationRate,
+      },
+      update: {
+        name: data.name,
+        irrigationPinChannel: data.channel,
+        precipitationRate: data.precipitationRate,
+      },
+      where: {
+        irrigationPinChannel: data.channel,
+      },
+    });
+  })
+);
 
-app.post("/schedule", async () => {});
+app.post(
+  "/schedule",
+  asyncHandler(async (req: Request, res: Response) => {
+    const data = IrrigationSchedule.parse(req.body);
+    // prisma.schedule.upsert({
+    //   where
+    // })
+  })
+);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
