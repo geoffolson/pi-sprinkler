@@ -13,6 +13,7 @@
   "author": "Geoffrey Olson Jr.",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^5.16.1",
     "common": "*",
     "express": "^4.19.2",
     "node-schedule": "^2.1.1",
