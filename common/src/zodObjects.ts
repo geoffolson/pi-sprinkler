@@ -11,11 +11,12 @@ export const ToggleIrrigationZone = z.number();
 // add option to use precipitation instead of length of time
 export const IrrigationZoneDuration = z.object({
   channel: z.number(),
-  length: z.number(),
+  type: z.enum(["duration", "inches"]),
+  durationOrInches: z.number(),
 });
 
 export const IrrigationSchedule = z.object({
-  schedule: z.number(),
+  cron: z.string(),
   channels: z.array(IrrigationZoneDuration),
 });
 

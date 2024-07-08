@@ -1,0 +1,1 @@
+curl localhost:3000/schedule?id=1

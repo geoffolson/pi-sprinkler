@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import { config } from "./loadConfig";
 import { PrismaClient } from "@prisma/client";
 import { IrrigationPin, IrrigationSchedule, IrrigationZone } from "common";
-import { channel } from "diagnostics_channel";
+import { z } from "zod";
 
 const prisma = new PrismaClient();
 
@@ -58,6 +58,27 @@ app.post(
   })
 );
 
+const IdSchema = z.object({ id: z.coerce.number() });
+app.get(
+  "/schedule",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = IdSchema.parse(req.query);
+    const schedule = await prisma.schedule.findFirst({
+      where: { id },
+      include: { channels: true },
+    });
+    res.send(schedule);
+  })
+);
+app.get(
+  "/schedules",
+  asyncHandler(async (req: Request, res: Response) => {
+    const schedule = await prisma.schedule.findMany({
+      include: { channels: true },
+    });
+    res.send(schedule);
+  })
+);
 app.post(
   "/schedule",
   asyncHandler(async (req: Request, res: Response) => {
