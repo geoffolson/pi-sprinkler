@@ -4,6 +4,12 @@ import { PrismaClient } from "@prisma/client";
 import { IrrigationPin, IrrigationSchedule, IrrigationZone } from "common";
 import { z } from "zod";
 import type { IrrigationZoneDuration } from "@prisma/client";
+import { Job, scheduleJob } from "node-schedule";
+import { Gpio } from "pigpio";
+
+const MINUTE = 1000 * 60; // in milliseconds
+const delayMinutes = (minutes: number) =>
+  new Promise((resolve) => setTimeout(resolve, minutes * MINUTE));
 
 const prisma = new PrismaClient();
 
@@ -15,6 +21,39 @@ const asyncHandler =
   (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
+
+let jobs: { job: Job; id: number }[] = [];
+
+(async () => {
+  const schedules = await prisma.schedule.findMany({
+    include: {
+      channels: { include: { irrigationZone: { include: { channel: true } } } },
+    },
+  });
+
+  jobs = schedules.map((schedule) => {
+    return {
+      id: schedule.id,
+      job: scheduleJob(schedule.cron, async () => {
+        for (const channel of schedule.channels) {
+          const duration =
+            channel.type === "precipitation"
+              ? channel.irrigationZone.precipitationRate *
+                channel.durationOrInches *
+                60
+              : channel.durationOrInches;
+          channel.irrigationZone.channel.gpioPin;
+          const gpio = new Gpio(channel.irrigationZone.channel.gpioPin, {
+            mode: Gpio.OUTPUT,
+          });
+          gpio.digitalWrite(0);
+          await delayMinutes(duration);
+          gpio.digitalWrite(1);
+        }
+      }),
+    };
+  });
+})();
 
 app.use(express.json());
 
@@ -70,10 +109,10 @@ app.get(
 app.get(
   "/schedules",
   asyncHandler(async (req: Request, res: Response) => {
-    const schedule = await prisma.schedule.findMany({
+    const schedules = await prisma.schedule.findMany({
       include: { channels: true },
     });
-    res.send(schedule);
+    res.send(schedules);
   })
 );
 app.post(
