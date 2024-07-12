@@ -2,11 +2,10 @@ import express, { Request, Response, NextFunction } from "express";
 import { config } from "./loadConfig";
 import { PrismaClient } from "@prisma/client";
 import { IrrigationPin, IrrigationSchedule, IrrigationZone } from "common";
-import { number, z } from "zod";
+import { z } from "zod";
 import type { IrrigationZoneDuration } from "@prisma/client";
 import { Job, scheduleJob } from "node-schedule";
 import { Gpio } from "pigpio";
-import { channel } from "diagnostics_channel";
 
 const MINUTE = 1000 * 60; // in milliseconds
 const delayMinutes = (minutes: number) =>
@@ -47,10 +46,14 @@ let jobs: { job: Job; id: number }[] = [];
           const gpio = new Gpio(channel.irrigationZone.channel.gpioPin, {
             mode: Gpio.OUTPUT,
           });
-	  console.log(`setting channel ${channel} on at gpio pin ${channel.irrigationZone.channel.gpioPin}`)
+          console.log(
+            `setting channel ${channel.irrigationZone.name} on at gpio pin ${channel.irrigationZone.channel.gpioPin} for ${duration} minutes`
+          );
           gpio.digitalWrite(0);
           await delayMinutes(duration);
-	  console.log(`setting channel ${channel} off at gpio pin ${channel.irrigationZone.channel.gpioPin}`)
+          console.log(
+            `setting channel ${channel.irrigationZone.name} off at gpio pin ${channel.irrigationZone.channel.gpioPin}`
+          );
           gpio.digitalWrite(1);
         }
       }),
