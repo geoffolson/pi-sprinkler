@@ -47,8 +47,10 @@ let jobs: { job: Job; id: number }[] = [];
           const gpio = new Gpio(channel.irrigationZone.channel.gpioPin, {
             mode: Gpio.OUTPUT,
           });
+	  console.log(`setting channel ${channel} on at gpio pin ${channel.irrigationZone.channel.gpioPin}`)
           gpio.digitalWrite(0);
           await delayMinutes(duration);
+	  console.log(`setting channel ${channel} off at gpio pin ${channel.irrigationZone.channel.gpioPin}`)
           gpio.digitalWrite(1);
         }
       }),
