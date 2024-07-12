@@ -2,10 +2,11 @@ import express, { Request, Response, NextFunction } from "express";
 import { config } from "./loadConfig";
 import { PrismaClient } from "@prisma/client";
 import { IrrigationPin, IrrigationSchedule, IrrigationZone } from "common";
-import { z } from "zod";
+import { number, z } from "zod";
 import type { IrrigationZoneDuration } from "@prisma/client";
 import { Job, scheduleJob } from "node-schedule";
 import { Gpio } from "pigpio";
+import { channel } from "diagnostics_channel";
 
 const MINUTE = 1000 * 60; // in milliseconds
 const delayMinutes = (minutes: number) =>
@@ -56,6 +57,24 @@ let jobs: { job: Job; id: number }[] = [];
 })();
 
 app.use(express.json());
+
+const PinControl = z.object({ channel: z.number(), out: z.number() });
+app.post(
+  "/irrigation-pin",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { channel, out } = PinControl.parse(req.body);
+    const irrigationPin = await prisma.irrigationPin.findFirst({
+      where: { channel },
+    });
+    if (irrigationPin) {
+      const gpio = new Gpio(irrigationPin?.gpioPin, {
+        mode: Gpio.OUTPUT,
+      });
+      gpio.digitalWrite(out);
+    }
+    res.send();
+  })
+);
 
 app.post(
   "/irrigation-pin",
