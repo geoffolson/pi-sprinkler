@@ -25,16 +25,23 @@ const asyncHandler =
 let jobs: { job: Job; id: number }[] = [];
 
 (async () => {
-  const schedules = await prisma.schedule.findMany({
-    include: {
-      channels: { include: { irrigationZone: { include: { channel: true } } } },
-    },
-  });
+  const schedules = await prisma.schedule.findMany({});
 
-  jobs = schedules.map((schedule) => {
+  jobs = schedules.map((_schedule) => {
     return {
-      id: schedule.id,
-      job: scheduleJob(schedule.cron, async () => {
+      id: _schedule.id,
+      job: scheduleJob(_schedule.cron, async () => {
+        const schedule = await prisma.schedule.findFirst({
+          include: {
+            channels: {
+              include: { irrigationZone: { include: { channel: true } } },
+            },
+          },
+          where: {
+            id: _schedule.id,
+          },
+        });
+        if (!schedule) return;
         for (const channel of schedule.channels) {
           const duration =
             channel.type === "precipitation"
@@ -65,7 +72,7 @@ app.use(express.json());
 
 const PinControl = z.object({ channel: z.number(), out: z.number() });
 app.post(
-  "/irrigation-pin",
+  "/irrigation-pin-control",
   asyncHandler(async (req: Request, res: Response) => {
     const { channel, out } = PinControl.parse(req.body);
     const irrigationPin = await prisma.irrigationPin.findFirst({
@@ -161,8 +168,36 @@ app.post(
         },
       },
       include: {
-        channels: true,
+        channels: {
+          include: { irrigationZone: { include: { channel: true } } },
+        },
       },
+    });
+    jobs.push({
+      id: schedule.id,
+      job: scheduleJob(schedule.cron, async () => {
+        for (const channel of schedule.channels) {
+          const duration =
+            channel.type === "precipitation"
+              ? channel.irrigationZone.precipitationRate *
+                channel.durationOrInches *
+                60
+              : channel.durationOrInches;
+          channel.irrigationZone.channel.gpioPin;
+          const gpio = new Gpio(channel.irrigationZone.channel.gpioPin, {
+            mode: Gpio.OUTPUT,
+          });
+          console.log(
+            `setting channel ${channel.irrigationZone.name} on at gpio pin ${channel.irrigationZone.channel.gpioPin} for ${duration} minutes`
+          );
+          gpio.digitalWrite(0);
+          await delayMinutes(duration);
+          console.log(
+            `setting channel ${channel.irrigationZone.name} off at gpio pin ${channel.irrigationZone.channel.gpioPin}`
+          );
+          gpio.digitalWrite(1);
+        }
+      }),
     });
     res.send(schedule);
   })
@@ -176,6 +211,12 @@ app.delete(
     await prisma.schedule.delete({
       include: { channels: true },
       where: { id },
+    });
+    jobs = jobs.filter((irrigationJob) => {
+      if (irrigationJob.id === id) {
+        irrigationJob.job.cancel(false);
+      }
+      return irrigationJob.id !== id;
     });
     res.send();
   })
