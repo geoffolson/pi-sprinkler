@@ -70,6 +70,7 @@ let jobs: { job: Job; id: number }[] = [];
 
 app.use(express.json());
 
+// manually set an irrigation pin
 const PinControl = z.object({ channel: z.number(), out: z.number() });
 app.post(
   "/irrigation-pin-control",
@@ -88,6 +89,7 @@ app.post(
   })
 );
 
+// create or edit and irrigation pin
 app.post(
   "/irrigation-pin",
   asyncHandler(async (req: Request, res: Response) => {
@@ -103,6 +105,7 @@ app.post(
   })
 );
 
+// create or edit an irrigation zone
 app.post(
   "/irrigation-zone",
   asyncHandler(async (req: Request, res: Response) => {
@@ -125,6 +128,7 @@ app.post(
   })
 );
 
+// get a scheduled job by id
 const IdQuerySchema = z.object({ id: z.coerce.number() });
 app.get(
   "/schedule",
@@ -137,6 +141,8 @@ app.get(
     res.send(schedule);
   })
 );
+
+// get all scheduled jobs
 app.get(
   "/schedules",
   asyncHandler(async (req: Request, res: Response) => {
@@ -146,6 +152,8 @@ app.get(
     res.send(schedules);
   })
 );
+
+// add a new schedule job
 app.post(
   "/schedule",
   asyncHandler(async (req: Request, res: Response) => {
@@ -203,6 +211,7 @@ app.post(
   })
 );
 
+// delete a scheduled job
 const IdDeleteSchema = z.object({ id: z.number() });
 app.delete(
   "/schedule",
